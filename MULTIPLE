@@ -1,0 +1,263 @@
+// app/globals.css
+@layer base {
+  :root {
+    /* Light theme */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 292 84% 55%; /* fuchsia-500 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 39%; /* emerald-500 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 40%;
+    --accent: 188 94% 42%; /* cyan-500 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 292 84% 55%;
+  }
+
+  .dark {
+    /* Dark theme - vibrant, high contrast */
+    --background: 222 66% 4%;   /* near-slate */
+    --foreground: 210 40% 98%;
+
+    --card: 222 60% 7%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 60% 7%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 292 84% 55%;       /* fuchsia-500 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 39%;     /* emerald-500 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 29% 14%;
+    --muted-foreground: 215 20% 72%;
+    --accent: 188 94% 42%;        /* cyan-500 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 292 84% 55%;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  /* Ensure lucide icons inherit readable color and not black */
+  svg.lucide, .lucide {
+    color: inherit;
+    stroke: currentColor !important;
+  }
+
+  /* ContentEditable and preview blocks: readable text + vibrant links */
+  .editor-html, .template-html {
+    color: hsl(var(--foreground));
+  }
+  .editor-html a, .template-html a {
+    color: hsl(var(--accent));
+  }
+
+  /* Force override pasted inline black text inside editor/preview */
+  .editor-html [style*="color:#000"],
+  .editor-html [style*="color: #000"],
+  .editor-html [style*="color:black"],
+  .editor-html [style*="color: black"],
+  .editor-html [style*="color:rgb(0,0,0)"],
+  .editor-html [style*="color: rgb(0, 0, 0)"],
+  .template-html [style*="color:#000"],
+  .template-html [style*="color: #000"],
+  .template-html [style*="color:black"],
+  .template-html [style*="color: black"],
+  .template-html [style*="color:rgb(0,0,0)"],
+  .template-html [style*="color: rgb(0, 0, 0)"] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
+    color: hsl(var(--foreground));
+  }
+
+  .dark [role="dialog"] {
+    color: #f8fafc; /* slate-50 */
+  }
+  .dark [role="dialog"] h1,
+  .dark [role="dialog"] h2,
+  .dark [role="dialog"] h3,
+  .dark [role="dialog"] h4,
+  .dark [role="dialog"] h5,
+  .dark [role="dialog"] h6 {
+    color: #f8fafc;
+  }
+  .dark [role="dialog"] .lucide,
+  .dark [role="dialog"] svg {
+    color: #f8fafc;
+    stroke: currentColor !important;
+  }
+}
+
+// app/page.tsx
+import ThemeToggle from '@/components/theme-toggle'
+import StatusBadge from '@/components/status-badge'
+import Tabs from '@/components/tabs'
+import DialogContent from '@/components/dialog-content' // Import DialogContent
+
+const Page = () => {
+  return (
+    <Tabs>
+      {/* rest of code here */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <StatusBadge />
+      </div>
+      {/* rest of code here */}
+      <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900 text-slate-100">
+        {/* Onboarding dialog content here */}
+      </DialogContent>
+    </Tabs>
+  )
+}
+
+export default Page
+
+// components/templates.tsx
+import CardContent from '@/components/card-content'
+import { Template } from '@/types'
+
+const TemplatePreview = ({ t }: { t: Template }) => {
+  return (
+    <div className="template-html line-clamp-3 text-sm" dangerouslySetInnerHTML={{ __html: t.html }} />
+  )
+}
+
+export default TemplatePreview
+
+// components/campaigns.tsx
+import CampaignWizard from '@/components/campaign-wizard'
+import { useToast } from '@/hooks/use-toast'
+import { actions } from '@/store'
+import DialogContent from '@/components/dialog-content' // Import DialogContent
+
+const Campaigns = () => {
+  const { toast } = useToast()
+
+  const sendNow = async (id: string) => {
+    await actions.sendCampaignNow(id)
+    toast({ title: 'Campaign sent', description: 'Your campaign has been sent via Resend.' })
+  }
+
+  return (
+    <CampaignWizard sendNow={sendNow}>
+      <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900 text-slate-100">
+        {/* Schedule dialog content here */}
+      </DialogContent>
+    </CampaignWizard>
+  )
+}
+
+export default Campaigns
+
+// components/template-editor.tsx
+import { useRef } from 'react'
+import { Editor } from '@tiptap/react'
+import LucideIcon from '@/components/lucide-icon'
+
+const TemplateEditor = ({ editor }: { editor: Editor }) => {
+  const containerRef = useRef(null)
+
+  return (
+    <div ref={containerRef} className="editor-html">
+      {/* rest of code here */}
+      <LucideIcon className="text-inherit" />
+      {/* rest of code here */}
+    </div>
+  )
+}
+
+export default TemplateEditor
+
+// components/quick-composer.tsx
+import { useToast } from '@/hooks/use-toast'
+import { actions } from '@/store'
+
+const QuickComposer = () => {
+  const { toast } = useToast()
+  const [to, setTo] = useState('')
+  const [subject, setSubject] = useState('')
+  const [recipients, setRecipients] = useState([])
+
+  const onSend = async () => {
+    try {
+      await actions.sendAdhocNow({ to, subject, recipients })
+      toast({ title: 'Email sent', description: `${recipients.length} message(s) sent via Resend.` })
+      setTo(''); setSubject('')
+    } catch (e: any) {
+      toast({ title: 'Send failed', description: String(e?.message ?? e), variant: 'destructive' })
+    }
+  }
+
+  return (
+    <div>
+      {/* rest of code here */}
+      <button onClick={onSend}>Send</button>
+      {/* rest of code here */}
+    </div>
+  )
+}
+
+export default QuickComposer
+
+// components/audience.tsx
+import ImportDialog from '@/components/import-dialog'
+import EditContactDialog from '@/components/edit-contact-dialog'
+import DialogContent from '@/components/dialog-content' // Import DialogContent
+
+const Audience = () => {
+  return (
+    <div>
+      <ImportDialog>
+        <DialogContent className="sm:max-w-lg border-slate-800 bg-slate-900 text-slate-100">
+          {/* Import dialog content here */}
+        </DialogContent>
+      </ImportDialog>
+      <EditContactDialog>
+        <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900 text-slate-100">
+          {/* Edit contact dialog content here */}
+        </DialogContent>
+      </EditContactDialog>
+    </div>
+  )
+}
+
+export default Audience
+
+// components/campaign-report.tsx
+import DialogContent from '@/components/dialog-content' // Import DialogContent
+
+const CampaignReport = () => {
+  return (
+    <div>
+      <DialogContent className="max-w-4xl border-slate-800 bg-slate-900 text-slate-100">
+        {/* Campaign report dialog content here */}
+      </DialogContent>
+    </div>
+  )
+}
+
+export default CampaignReport

@@ -1,0 +1,105 @@
+// app/globals.css
+/* Dark theme contrast and inline black override */
+:root { color-scheme: dark; }
+body { background-color: #020617; color: #e2e8f0; }
+
+/* Any HTML rendered from templates or the editor */
+.template-html,
+.editor-html {
+  color: #e2e8f0;
+}
+
+.template-html a,
+.editor-html a {
+  color: #34d399;
+}
+
+/* Override inline black text colors commonly pasted into content */
+.template-html [style*="color:#000"],
+.template-html [style*="color: #000"],
+.template-html [style*="color:black"],
+.template-html [style*="color: black"],
+.template-html [style*="color: rgb(0, 0, 0)"],
+.template-html [style*="color:rgb(0,0,0)"],
+.template-html [style*="color: rgba(0, 0, 0"],
+.editor-html [style*="color:#000"],
+.editor-html [style*="color: #000"],
+.editor-html [style*="color:black"],
+.editor-html [style*="color: black"],
+.editor-html [style*="color: rgb(0, 0, 0)"],
+.editor-html [style*="color:rgb(0,0,0)"],
+.editor-html [style*="color: rgba(0, 0, 0"] {
+  color: #e2e8f0 !important; /* slate-200 */
+}
+
+/* Ensure icons inherit the light color inside HTML blocks */
+.template-html svg,
+.editor-html svg {
+  color: inherit;
+  stroke: currentColor !important;
+}
+
+// components/template-editor.tsx
+import React, { useRef } from 'react';
+
+interface TemplateEditorProps {
+  onChange: (html: string) => void;
+}
+
+const TemplateEditor: React.FC<TemplateEditorProps> = ({ onChange }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={ref}
+      className="editor-html min-h-[200px] w-full bg-slate-950 p-3 text-sm text-slate-100 outline-none"
+      contentEditable
+      onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
+      suppressContentEditableWarning
+      role="textbox"
+      aria-multiline="true"
+    />
+  );
+};
+
+export default TemplateEditor;
+
+// components/templates.tsx
+import React from 'react';
+
+interface TemplateProps {
+  t: { html: string };
+}
+
+const Templates: React.FC<TemplateProps> = ({ t }) => {
+  return (
+    <div className="template-html line-clamp-3 text-sm text-slate-200" dangerouslySetInnerHTML={{ __html: t.html }} />
+  );
+};
+
+export default Templates;
+
+// components/campaigns.tsx
+import React from 'react';
+
+interface CampaignsProps {
+  mode: string;
+  templateId: string;
+  state: { templates: Array<{ id: string; html: string }> };
+  html: string;
+}
+
+const Campaigns: React.FC<CampaignsProps> = ({ mode, templateId, state, html }) => {
+  return (
+    <div
+      className="template-html text-slate-100"
+      dangerouslySetInnerHTML={{
+        __html: mode === 'template'
+          ? (state.templates.find(t => t.id === templateId)?.html ?? '<em>Template not found</em>')
+          : html
+      }}
+    />
+  );
+};
+
+export default Campaigns;

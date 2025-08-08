@@ -1,0 +1,189 @@
+// app/globals.css
+/* Dark theme contrast and inline black override */
+.template-html,
+.editor-html {
+  color: #e2e8f0;
+}
+
+.template-html a,
+.editor-html a {
+  color: #34d399;
+}
+
+/* Override inline black text colors commonly pasted into content */
+.template-html [style*="color:#000"],
+.template-html [style*="color: #000"],
+.template-html [style*="color:black"],
+.template-html [style*="color: black"],
+.template-html [style*="color: rgb(0, 0, 0)"],
+.template-html [style*="color:rgb(0,0,0)"],
+.editor-html [style*="color:#000"],
+.editor-html [style*="color: #000"],
+.editor-html [style*="color:black"],
+.editor-html [style*="color: black"],
+.editor-html [style*="color: rgb(0, 0, 0)"],
+.editor-html [style*="color:rgb(0,0,0)"] {
+  color: #e2e8f0 !important;
+}
+
+/* Ensure icons inherit the light color inside HTML blocks */
+.template-html svg,
+.editor-html svg {
+  color: inherit;
+  stroke: currentColor !important;
+}
+
+// components/dashboard.tsx
+import React from 'react';
+import { CardTitle, Stat } from './common-components';
+import { type LucideIcon } from 'lucide-react';
+
+const Dashboard = () => {
+  return (
+    <div>
+      <CardTitle className="text-slate-100">Dashboard Title</CardTitle>
+      <Stat icon={<LucideIcon className="text-slate-200" />}>Stat Content</Stat>
+      {/* rest of code here */}
+    </div>
+  );
+};
+
+export default Dashboard;
+
+// components/audience.tsx
+import React from 'react';
+import { CardTitle } from './common-components';
+import { Plus, Upload, Trash2, Pencil, TagIcon, X, Save } from 'lucide-react';
+
+const Audience = () => {
+  return (
+    <div>
+      <CardTitle className="text-slate-100">Lists</CardTitle>
+      <CardTitle className="text-slate-100">Tags</CardTitle>
+      <CardTitle className="text-slate-100">Contacts</CardTitle>
+      <button><Plus className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><Upload className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><Trash2 className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><Pencil className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><TagIcon className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><X className="mr-2 h-4 w-4 text-slate-200" /></button>
+      <button><Save className="mr-2 h-4 w-4 text-slate-200" /></button>
+      {/* rest of code here */}
+    </div>
+  );
+};
+
+export default Audience;
+
+// components/templates.tsx
+import React from 'react';
+import { CardTitle } from './common-components';
+import { Pencil, Trash2, Plus, Save } from 'lucide-react';
+
+const Templates = () => {
+  return (
+    <div>
+      <h2 className="text-slate-100">Templates</h2>
+      <div>
+        <CardTitle className="text-slate-100">Template Card Title</CardTitle>
+        <button><Pencil className="text-slate-200" /></button>
+        <button><Trash2 className="text-slate-200" /></button>
+        <button><Plus className="text-slate-200" /></button>
+        <button><Save className="text-slate-200" /></button>
+        {/* rest of code here */}
+      </div>
+    </div>
+  );
+};
+
+export default Templates;
+
+// components/template-editor.tsx
+import React from 'react';
+import { Bold, Italic, Underline, List, ListOrdered, LinkIcon, ImageIcon, Code } from 'lucide-react';
+
+const TemplateEditor = () => {
+  return (
+    <div>
+      <div className="editor-html" contentEditable>
+        {/* rest of code here */}
+      </div>
+      <div className="toolbar">
+        <button><Bold className="text-slate-200" /></button>
+        <button><Italic className="text-slate-200" /></button>
+        <button><Underline className="text-slate-200" /></button>
+        <button><List className="text-slate-200" /></button>
+        <button><ListOrdered className="text-slate-200" /></button>
+        <button><LinkIcon className="text-slate-200" /></button>
+        <button><ImageIcon className="text-slate-200" /></button>
+        <button><Code className="text-slate-200" /></button>
+      </div>
+    </div>
+  );
+};
+
+export default TemplateEditor;
+
+// components/campaigns.tsx
+import React from 'react';
+import { CardTitle } from './common-components';
+import { CalendarClock, Send, CheckCircle2 } from 'lucide-react';
+import QuickComposer from '@/components/quick-composer';
+
+const Campaigns = () => {
+  return (
+    <div className='space-y-6'>
+      <QuickComposer />
+      <CardTitle className="text-slate-100">New Campaign</CardTitle>
+      <CardTitle className="text-slate-100">Recent Campaigns</CardTitle>
+      <button><CalendarClock className="text-slate-200" /></button>
+      <button><Send className="text-slate-200" /></button>
+      <button><CheckCircle2 className="text-slate-200" /></button>
+      <div className="max-h-[320px] overflow-auto bg-slate-950 p-4 text-sm">
+        <div className="template-html text-slate-100" dangerouslySetInnerHTML={{ __html: 'preview content' }} />
+      </div>
+      {/* rest of code here */}
+    </div>
+  );
+};
+
+export default Campaigns;
+
+// components/settings.tsx
+import React from 'react';
+import { CardTitle } from './common-components';
+import { AlertCircle, RefreshCcw } from 'lucide-react';
+
+const Settings = () => {
+  return (
+    <div>
+      <CardTitle className="text-slate-100">Resend API Key</CardTitle>
+      <CardTitle className="text-slate-100">Verified Domains</CardTitle>
+      <button><AlertCircle className="text-slate-200" /></button>
+      <button><RefreshCcw className="text-slate-200" /></button>
+      {/* rest of code here */}
+    </div>
+  );
+};
+
+export default Settings;
+
+// app/page.tsx
+import React from 'react';
+import { Mail } from 'lucide-react';
+import { Tabs } from './common-components';
+
+const Page = () => {
+  return (
+    <div>
+      <header>
+        <Mail className="h-5 w-5 text-emerald-400" />
+        {/* rest of code here */}
+      </header>
+      <Tabs />
+      {/* rest of code here */}
+    </div>
+  );
+};
+
+export default Page;
