@@ -70,7 +70,9 @@ function CampaignWizard() {
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')
   const [fromName, setFromName] = useState('')
-  const [fromEmail, setFromEmail] = useState('')
+  const [fromEmail, setFromEmail] = useState(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('defaultSenderEmail') || 'noreply@agents.community-enriched.com' : 'noreply@agents.community-enriched.com'
+  )
 
   const [selectedLists, setSelectedLists] = useState<ID[]>([])
   const [selectedTags, setSelectedTags] = useState<ID[]>([])
@@ -132,7 +134,8 @@ function CampaignWizard() {
 
   const resetAll = () => {
     setStep(1)
-    setName(''); setSubject(''); setFromName(''); setFromEmail('')
+    setName(''); setSubject(''); setFromName('')
+    setFromEmail(typeof window !== 'undefined' ? localStorage.getItem('defaultSenderEmail') || 'noreply@agents.community-enriched.com' : 'noreply@agents.community-enriched.com')
     setSelectedLists([]); setSelectedTags([])
     setMode('template'); setTemplateId(state.templates[0]?.id); setHtml('<h1>Hello {{firstName}}</h1>\n<p>Write your message...</p>')
   }

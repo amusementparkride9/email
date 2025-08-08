@@ -53,8 +53,10 @@
     "react-day-picker": "9.8.0",
     "react-dom": "^19",
     "react-hook-form": "^7.60.0",
+    "react-hot-toast": "^2.5.2",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.4",
+    "resend": "^6.0.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
@@ -64,6 +66,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
+    "@types/papaparse": "^5.3.16",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5",

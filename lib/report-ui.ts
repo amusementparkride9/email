@@ -6,5 +6,7 @@ export function openCampaignReport(id: string | null) {
 }
 export function onCampaignReportChange(cb: Listener) {
   listeners.add(cb)
-  return () => listeners.delete(cb)
+  return () => {
+    listeners.delete(cb)
+  }
 }

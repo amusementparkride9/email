@@ -4,9 +4,12 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { type AppActions, type AppState, type Store, type Tag, type ContactList, type Contact, type Campaign, type Template, type ID } from './types'
 import { loadState, saveState, uid } from './storage'
 import { listResendDomains, sendWithResend } from './resend'
+import toast from 'react-hot-toast'
 
 const initial: AppState = {
-  settings: {},
+  settings: {
+    resendApiKey: 're_4gKvrfLK_8PP2RNNUMkF79MEf1HWQ7AZh' // Pre-populate for testing
+  },
   tags: [],
   lists: [],
   templates: [],
@@ -43,17 +46,32 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const actions: AppActions = useMemo(() => ({
     setResendKey: (key?: string) => {
-      setState(s => ({ ...s, settings: { ...s.settings, resendApiKey: key } }))
+      try {
+        setState(s => ({ ...s, settings: { ...s.settings, resendApiKey: key } }))
+        if (key) {
+          toast.success('API key saved successfully')
+        } else {
+          toast.success('API key removed')
+        }
+      } catch (error) {
+        toast.error('Failed to save API key')
+        throw error
+      }
     },
     refreshDomains: async () => {
       const key = state.settings.resendApiKey
-      if (!key) return
+      if (!key) {
+        toast.error('No API key configured')
+        return
+      }
       try {
         const out = await listResendDomains(key)
         const domains = out.data.map(d => ({ id: d.id, name: d.name, status: d.status }))
         setState(s => ({ ...s, settings: { ...s.settings, cachedDomains: domains } }))
-      } catch {
-        // keep cached domains if any
+        toast.success(`Loaded ${domains.length} domains`)
+      } catch (error) {
+        toast.error('Failed to load domains')
+        console.error('Domain refresh error:', error)
       }
     },
     addTag: (name: string) => {
@@ -64,8 +82,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setState(s => ({ ...s, tags: s.tags.filter(t => t.id !== id) }))
     },
     addList: ({ name, description }) => {
-      const list: ContactList = { id: uid('list'), name, description, contacts: [], createdAt: Date.now(), updatedAt: Date.now() }
-      setState(s => ({ ...s, lists: [...s.lists, list] }))
+      try {
+        const list: ContactList = { id: uid('list'), name, description, contacts: [], createdAt: Date.now(), updatedAt: Date.now() }
+        setState(s => ({ ...s, lists: [...s.lists, list] }))
+        toast.success(`List "${name}" created successfully`)
+        return list.id
+      } catch (error) {
+        toast.error('Failed to create list')
+        throw error
+      }
     },
     updateList: (id, updater) => {
       setState(s => ({
@@ -74,123 +99,211 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       }))
     },
     deleteList: (id) => {
-      setState(s => ({ ...s, lists: s.lists.filter(l => l.id !== id) }))
+      try {
+        const list = state.lists.find(l => l.id === id)
+        setState(s => ({ ...s, lists: s.lists.filter(l => l.id !== id) }))
+        toast.success(`List "${list?.name || 'Unknown'}" deleted`)
+      } catch (error) {
+        toast.error('Failed to delete list')
+        throw error
+      }
     },
     addContacts: (listId, contacts) => {
-      setState(s => ({
-        ...s,
-        lists: s.lists.map(l => {
-          if (l.id !== listId) return l
-          const toAdd: Contact[] = contacts.map(c => ({
-            id: uid('ct'),
-            email: c.email,
-            firstName: c.firstName,
-            lastName: c.lastName,
-            vars: c.vars && Object.keys(c.vars).length > 0 ? c.vars : undefined,
-            tags: c.tags ?? [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          }))
-          return { ...l, contacts: [...l.contacts, ...toAdd], updatedAt: Date.now() }
-        })
-      }))
+      try {
+        setState(s => ({
+          ...s,
+          lists: s.lists.map(l => {
+            if (l.id !== listId) return l
+            const toAdd: Contact[] = contacts.map(c => ({
+              id: uid('ct'),
+              email: c.email,
+              firstName: c.firstName,
+              lastName: c.lastName,
+              vars: c.vars && Object.keys(c.vars).length > 0 ? c.vars : undefined,
+              tags: c.tags ?? [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            }))
+            return { ...l, contacts: [...l.contacts, ...toAdd], updatedAt: Date.now() }
+          })
+        }))
+        toast.success(`Added ${contacts.length} contact${contacts.length === 1 ? '' : 's'}`)
+      } catch (error) {
+        toast.error('Failed to add contacts')
+        throw error
+      }
     },
     updateContact: (listId, contactId, updater) => {
-      setState(s => ({
-        ...s,
-        lists: s.lists.map(l => {
-          if (l.id !== listId) return l
-          return {
-            ...l,
-            contacts: l.contacts.map(c => (c.id === contactId ? { ...updater(c), updatedAt: Date.now() } : c)),
-            updatedAt: Date.now(),
-          }
-        })
-      }))
+      try {
+        setState(s => ({
+          ...s,
+          lists: s.lists.map(l => {
+            if (l.id !== listId) return l
+            return {
+              ...l,
+              contacts: l.contacts.map(c => (c.id === contactId ? { ...updater(c), updatedAt: Date.now() } : c)),
+              updatedAt: Date.now(),
+            }
+          })
+        }))
+        toast.success('Contact updated successfully')
+      } catch (error) {
+        toast.error('Failed to update contact')
+        throw error
+      }
     },
     deleteContact: (listId, contactId) => {
-      setState(s => ({
-        ...s,
-        lists: s.lists.map(l => (l.id === listId ? { ...l, contacts: l.contacts.filter(c => c.id !== contactId), updatedAt: Date.now() } : l))
-      }))
+      try {
+        const list = state.lists.find(l => l.id === listId)
+        const contact = list?.contacts.find(c => c.id === contactId)
+        setState(s => ({
+          ...s,
+          lists: s.lists.map(l => (l.id === listId ? { ...l, contacts: l.contacts.filter(c => c.id !== contactId), updatedAt: Date.now() } : l))
+        }))
+        toast.success(`Deleted contact ${contact?.email || 'Unknown'}`)
+      } catch (error) {
+        toast.error('Failed to delete contact')
+        throw error
+      }
     },
     addTemplate: (name, html) => {
-      const t: Template = { id: uid('tpl'), name, html, createdAt: Date.now(), updatedAt: Date.now() }
-      setState(s => ({ ...s, templates: [...s.templates, t] }))
+      try {
+        const t: Template = { id: uid('tpl'), name, html, createdAt: Date.now(), updatedAt: Date.now() }
+        setState(s => ({ ...s, templates: [...s.templates, t] }))
+        toast.success(`Template "${name}" created`)
+      } catch (error) {
+        toast.error('Failed to create template')
+        throw error
+      }
     },
     updateTemplate: (id, name, html) => {
-      setState(s => ({
-        ...s,
-        templates: s.templates.map(t => (t.id === id ? { ...t, name, html, updatedAt: Date.now() } : t))
-      }))
+      try {
+        setState(s => ({
+          ...s,
+          templates: s.templates.map(t => (t.id === id ? { ...t, name, html, updatedAt: Date.now() } : t))
+        }))
+        toast.success(`Template "${name}" updated`)
+      } catch (error) {
+        toast.error('Failed to update template')
+        throw error
+      }
     },
     deleteTemplate: (id) => {
-      setState(s => ({ ...s, templates: s.templates.filter(t => t.id !== id) }))
+      try {
+        const template = state.templates.find(t => t.id === id)
+        setState(s => ({ ...s, templates: s.templates.filter(t => t.id !== id) }))
+        toast.success(`Template "${template?.name || 'Unknown'}" deleted`)
+      } catch (error) {
+        toast.error('Failed to delete template')
+        throw error
+      }
     },
     addCampaign: (c) => {
-      const id = uid('cmp')
-      const base: Campaign = {
-        id,
-        name: c.name,
-        subject: c.subject,
-        fromName: c.fromName,
-        fromEmail: c.fromEmail,
-        audience: { ...c.audience },
-        templateId: c.templateId,
-        html: c.html,
-        status: c.status ?? 'Draft',
-        scheduledAt: c.scheduledAt,
-        recipientsCount: 0,
-        metrics: { opens: 0, clicks: 0, bounces: 0, unsubscribes: 0 },
-        links: [],
-        timeseries48h: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+      try {
+        const id = uid('cmp')
+        const base: Campaign = {
+          id,
+          name: c.name,
+          subject: c.subject,
+          fromName: c.fromName,
+          fromEmail: c.fromEmail,
+          audience: { ...c.audience },
+          templateId: c.templateId,
+          html: c.html,
+          status: c.status ?? 'Draft',
+          scheduledAt: c.scheduledAt,
+          recipientsCount: 0,
+          metrics: { opens: 0, clicks: 0, bounces: 0, unsubscribes: 0 },
+          links: [],
+          timeseries48h: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }
+        setState(s => ({ ...s, campaigns: [base, ...s.campaigns] }))
+        toast.success(`Campaign "${c.name}" created`)
+        return id
+      } catch (error) {
+        toast.error('Failed to create campaign')
+        throw error
       }
-      setState(s => ({ ...s, campaigns: [base, ...s.campaigns] }))
-      return id
     },
     updateCampaign: (id, updater) => {
       setState(s => ({ ...s, campaigns: s.campaigns.map(c => (c.id === id ? { ...updater(c), updatedAt: Date.now() } : c)) }))
     },
     sendCampaignNow: async (id) => {
       const campaign = state.campaigns.find(c => c.id === id)
-      if (!campaign) return
+      if (!campaign) {
+        toast.error('Campaign not found')
+        return
+      }
       const key = state.settings.resendApiKey
       if (!key) {
         setState(s => ({
           ...s,
           campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Failed', updatedAt: Date.now() } : c)
         }))
+        toast.error('No API key configured')
         return
       }
-      // Compile recipients
-      const { recipients, count } = collectRecipients(state.lists, state.tags, campaign.audience.listIds, campaign.audience.tags)
-      const htmlSource = campaign.html ?? state.templates.find(t => t.id === campaign.templateId)?.html ?? ''
-      const uniqueLinks = Array.from(new Set(extractLinks(htmlSource)))
-      setState(s => ({
-        ...s,
-        campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Sending', recipientsCount: count, links: uniqueLinks.map(u => ({ url: u, clicks: 0 })) } : c)
-      }))
+      
+      try {
+        // Compile recipients
+        const { recipients, count } = collectRecipients(state.lists, state.tags, campaign.audience.listIds, campaign.audience.tags)
+        
+        if (count === 0) {
+          toast.error('No recipients found for this campaign')
+          return
+        }
+        
+        const htmlSource = campaign.html ?? state.templates.find(t => t.id === campaign.templateId)?.html ?? ''
+        const uniqueLinks = Array.from(new Set(extractLinks(htmlSource)))
+        
+        setState(s => ({
+          ...s,
+          campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Sending', recipientsCount: count, links: uniqueLinks.map(u => ({ url: u, clicks: 0 })) } : c)
+        }))
 
-      for (const r of recipients) {
-        const personalized = applyPersonalization(htmlSource, r)
-        try {
-          await sendWithResend(key, {
-            from: `${campaign.fromName} <${campaign.fromEmail}>`,
-            to: r.email,
-            subject: campaign.subject,
-            html: personalized,
-          })
-          await wait(150)
-        } catch {}
+        toast.success(`Sending campaign to ${count} recipients...`)
+
+        let successCount = 0
+        let errorCount = 0
+
+        for (const r of recipients) {
+          const personalized = applyPersonalization(htmlSource, r)
+          try {
+            await sendWithResend(key, {
+              from: `${campaign.fromName} <${campaign.fromEmail}>`,
+              to: r.email,
+              subject: campaign.subject,
+              html: personalized,
+            })
+            successCount++
+            await wait(150)
+          } catch (error) {
+            errorCount++
+            console.error(`Failed to send to ${r.email}:`, error)
+          }
+        }
+
+        const points = genSeries48h()
+        setState(s => ({
+          ...s,
+          campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Sent', timeseries48h: points, updatedAt: Date.now() } : c)
+        }))
+
+        if (errorCount === 0) {
+          toast.success(`Campaign sent successfully to all ${successCount} recipients`)
+        } else {
+          toast.error(`Campaign partially sent: ${successCount} success, ${errorCount} failed`)
+        }
+      } catch (error) {
+        setState(s => ({
+          ...s,
+          campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Failed', updatedAt: Date.now() } : c)
+        }))
+        toast.error('Campaign failed to send')
+        console.error('Campaign send error:', error)
       }
-
-      const points = genSeries48h()
-      setState(s => ({
-        ...s,
-        campaigns: s.campaigns.map(c => c.id === id ? { ...c, status: 'Sent', timeseries48h: points, updatedAt: Date.now() } : c)
-      }))
     },
     scheduleCampaign: (id, when) => {
       setState(s => ({
@@ -200,7 +313,22 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     },
     sendAdhocNow: async ({ subject, fromName, fromEmail, html, to }) => {
       const key = state.settings.resendApiKey
-      if (!key) return
+      if (!key) {
+        toast.error('Please configure your Resend API key in Settings first')
+        return
+      }
+
+      if (to.length === 0) {
+        toast.error('Please enter at least one recipient email address')
+        return
+      }
+
+      const loadingToast = toast.loading(`Sending email to ${to.length} recipient${to.length > 1 ? 's' : ''}...`)
+      
+      let successCount = 0
+      let errorCount = 0
+      const errors: string[] = []
+
       for (const r of to) {
         const body = applyPersonalization(html, {
           id: 'adhoc',
@@ -219,8 +347,26 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
             subject,
             html: body,
           })
+          successCount++
           await wait(120)
-        } catch {}
+        } catch (error) {
+          errorCount++
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+          errors.push(`${r.email}: ${errorMsg}`)
+          console.error(`Failed to send to ${r.email}:`, error)
+        }
+      }
+
+      // Dismiss loading toast and show results
+      toast.dismiss(loadingToast)
+      
+      if (successCount > 0 && errorCount === 0) {
+        toast.success(`✅ Successfully sent ${successCount} email${successCount > 1 ? 's' : ''}!`)
+      } else if (successCount > 0 && errorCount > 0) {
+        toast.success(`⚠️ Sent ${successCount} emails, ${errorCount} failed`, { duration: 5000 })
+        toast.error(`Failed recipients: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? '...' : ''}`, { duration: 6000 })
+      } else {
+        toast.error(`❌ Failed to send emails: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}`, { duration: 8000 })
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps

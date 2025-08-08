@@ -11,35 +11,65 @@ import { AlertCircle, RefreshCcw } from 'lucide-react'
 export default function Settings() {
   const { state, actions } = useAppStore()
   const [key, setKey] = useState(state.settings.resendApiKey ?? '')
+  const [senderEmail, setSenderEmail] = useState(state.settings.defaultSenderEmail ?? 'noreply@agents.community-enriched.com')
 
   useEffect(() => {
     setKey(state.settings.resendApiKey ?? '')
-  }, [state.settings.resendApiKey])
+    const savedSender = localStorage.getItem('defaultSenderEmail')
+    setSenderEmail(savedSender || state.settings.defaultSenderEmail || 'noreply@agents.community-enriched.com')
+  }, [state.settings.resendApiKey, state.settings.defaultSenderEmail])
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6">
       <Card className="border-slate-800 bg-slate-900">
         <CardHeader>
-          <CardTitle>Resend API Key</CardTitle>
+          <CardTitle>Email Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Alert variant="default" className="border-amber-800 bg-amber-950 text-amber-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Security note</AlertTitle>
-            <AlertDescription className="text-amber-200">
-              Your API key is stored in this browser&apos;s localStorage and used directly from the client. This is not recommended for production.
-            </AlertDescription>
-          </Alert>
-          <Input
-            type="password"
-            placeholder="re_XXXXXXXXXXXXXXXXXXXXXXXX"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            className="bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500"
-          />
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-200 mb-2 block">Default Sender Email</label>
+            <Input
+              type="email"
+              placeholder="noreply@agents.community-enriched.com"
+              value={senderEmail}
+              onChange={(e) => setSenderEmail(e.target.value)}
+              className="bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500"
+            />
+            <p className="text-xs text-slate-400 mt-1">This email will be used as the sender for all campaigns</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-200 mb-2 block">Resend API Key</label>
+            <Alert variant="default" className="border-amber-800 bg-amber-950 text-amber-200 mb-3">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Security note</AlertTitle>
+              <AlertDescription className="text-amber-200">
+                Your API key is stored in this browser&apos;s localStorage and used directly from the client. This is not recommended for production.
+              </AlertDescription>
+            </Alert>
+            <Input
+              type="password"
+              placeholder="re_XXXXXXXXXXXXXXXXXXXXXXXX"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              className="bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500"
+            />
+          </div>
           <div className="flex gap-2">
-            <Button onClick={() => actions.setResendKey(key || undefined)}>Save</Button>
-            <Button variant="secondary" onClick={() => { setKey(''); actions.setResendKey(undefined) }}>Delete</Button>
+            <Button onClick={() => {
+              actions.setResendKey(key || undefined)
+              // For now, save sender email in localStorage directly
+              if (senderEmail) {
+                localStorage.setItem('defaultSenderEmail', senderEmail)
+              } else {
+                localStorage.removeItem('defaultSenderEmail')
+              }
+            }}>Save Configuration</Button>
+            <Button variant="secondary" onClick={() => { 
+              setKey(''); 
+              setSenderEmail('noreply@agents.community-enriched.com');
+              actions.setResendKey(undefined);
+              localStorage.removeItem('defaultSenderEmail');
+            }}>Reset</Button>
           </div>
         </CardContent>
       </Card>

@@ -74,6 +74,8 @@ export default function TemplateEditor({ value, onChange }: { value: string; onC
           <Button size="sm" variant="outline" className="border-slate-700 text-slate-200" onClick={() => insertText('{{firstName}}')}>firstName</Button>
           <Button size="sm" variant="outline" className="border-slate-700 text-slate-200" onClick={() => insertText('{{lastName}}')}>lastName</Button>
           <Button size="sm" variant="outline" className="border-slate-700 text-slate-200" onClick={() => insertText('{{email}}')}>email</Button>
+          <Button size="sm" variant="outline" className="border-emerald-700 text-emerald-200" onClick={() => insertText('{{company}}')}>company</Button>
+          <Button size="sm" variant="outline" className="border-emerald-700 text-emerald-200" onClick={() => insertText('{{plan}}')}>plan</Button>
         </div>
         <div className="ml-auto">
           <Button size="sm" variant="secondary" onClick={() => setMode(m => (m === 'design' ? 'html' : 'design'))}>
@@ -100,6 +102,10 @@ export default function TemplateEditor({ value, onChange }: { value: string; onC
           className="min-h-[200px] w-full resize-y bg-slate-950 text-slate-100 placeholder:text-slate-500"
         />
       )}
+      <div className="border-t border-slate-800 p-2 text-xs text-slate-400">
+        <span className="font-medium">💡 Tip:</span> Built-in variables: <code className="bg-slate-800 px-1 rounded">{"{{firstName}}"}</code>, <code className="bg-slate-800 px-1 rounded">{"{{lastName}}"}</code>, <code className="bg-slate-800 px-1 rounded">{"{{email}}"}</code>. 
+        CSV variables: <code className="bg-slate-800 px-1 rounded">{"{{company}}"}</code>, <code className="bg-slate-800 px-1 rounded">{"{{plan}}"}</code>, <code className="bg-slate-800 px-1 rounded">{"{{city}}"}</code>, etc.
+      </div>
     </div>
   )
 }

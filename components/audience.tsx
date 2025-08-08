@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Upload, Trash2, Pencil, TagIcon, X, Save } from 'lucide-react'
+import { Plus, Upload, Trash2, Pencil, TagIcon, X, Save, Download } from 'lucide-react'
 import Papa from 'papaparse'
 import type { Contact, ContactList } from '@/lib/types'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,11 +19,22 @@ export default function Audience() {
   const { state, actions } = useAppStore()
   const [newList, setNewList] = useState({ name: '', description: '' })
   const [selectedListId, setSelectedListId] = useState<string | null>(state.lists[0]?.id ?? null)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const currentList = useMemo(
     () => state.lists.find(l => l.id === selectedListId) ?? null,
     [state.lists, selectedListId]
   )
+
+  const handleDeleteList = (listId: string) => {
+    actions.deleteList(listId)
+    setDeleteConfirm(null)
+    // If we deleted the selected list, select another one
+    if (selectedListId === listId) {
+      const remaining = state.lists.filter(l => l.id !== listId)
+      setSelectedListId(remaining[0]?.id ?? null)
+    }
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -35,17 +46,26 @@ export default function Audience() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               {state.lists.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => setSelectedListId(l.id)}
-                  className={cn(
-                    'w-full rounded border px-3 py-2 text-left text-sm',
-                    selectedListId === l.id ? 'border-emerald-800 bg-emerald-950 text-emerald-200' : 'border-slate-800 hover:bg-slate-800 text-slate-100'
-                  )}
-                >
-                  <div className="font-medium">{l.name}</div>
-                  <div className="text-xs text-slate-400">{l.contacts.length} contacts</div>
-                </button>
+                <div key={l.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedListId(l.id)}
+                    className={cn(
+                      'flex-1 rounded border px-3 py-2 text-left text-sm',
+                      selectedListId === l.id ? 'border-emerald-800 bg-emerald-950 text-emerald-200' : 'border-slate-800 hover:bg-slate-800 text-slate-100'
+                    )}
+                  >
+                    <div className="font-medium">{l.name}</div>
+                    <div className="text-xs text-slate-400">{l.contacts.length} contacts</div>
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setDeleteConfirm(l.id)}
+                    className="shrink-0"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               ))}
               {state.lists.length === 0 && (
                 <div className="text-sm text-slate-400">No lists yet. Create one below.</div>
@@ -69,8 +89,9 @@ export default function Audience() {
               <Button
                 onClick={() => {
                   if (!newList.name.trim()) return
-                  actions.addList({ name: newList.name.trim(), description: newList.description.trim() || undefined })
+                  const listId = actions.addList({ name: newList.name.trim(), description: newList.description.trim() || undefined })
                   setNewList({ name: '', description: '' })
+                  setSelectedListId(listId) // Auto-select the new list
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -86,6 +107,32 @@ export default function Audience() {
       <div className="lg:col-span-2 space-y-4">
         <ContactsPanel currentList={currentList} />
       </div>
+
+      {/* Delete List Confirmation */}
+      {deleteConfirm && (
+        <Dialog open onOpenChange={() => setDeleteConfirm(null)}>
+          <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900">
+            <DialogHeader>
+              <DialogTitle>Delete List</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-slate-300">
+                Are you sure you want to delete <strong>{state.lists.find(l => l.id === deleteConfirm)?.name}</strong>?
+              </p>
+              <p className="text-sm text-slate-400 mt-2">
+                This will permanently delete all {state.lists.find(l => l.id === deleteConfirm)?.contacts.length || 0} contacts in this list.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => handleDeleteList(deleteConfirm!)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete List
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
@@ -140,6 +187,7 @@ function ContactsPanel({ currentList }: { currentList: ContactList | null }) {
   const { state, actions } = useAppStore()
   const [showImport, setShowImport] = useState(false)
   const [editing, setEditing] = useState<Contact | null>(null)
+  const [deleteContactConfirm, setDeleteContactConfirm] = useState<string | null>(null)
   const [newContact, setNewContact] = useState<{ email: string; firstName?: string; lastName?: string; tags: string[]; vars?: Record<string, string> }>({ email: '', firstName: '', lastName: '', tags: [], vars: {} })
 
   if (!currentList) {
@@ -156,8 +204,56 @@ function ContactsPanel({ currentList }: { currentList: ContactList | null }) {
   const toggleTag = (tid: string) => {
     setNewContact(s => {
       const exists = s.tags.includes(tid)
-      return { ...s, tags: exists ? s.tags.filter(t => t !== tid) : [...s, tid] }
+      return { ...s, tags: exists ? s.tags.filter(t => t !== tid) : [...s.tags, tid] }
     })
+  }
+
+  const downloadCSVExample = () => {
+    const exampleData = [
+      {
+        email: 'john.doe@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        company: 'Acme Corp',
+        plan: 'Premium',
+        city: 'New York',
+        tags: 'customer,premium'
+      },
+      {
+        email: 'jane.smith@example.com',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        company: 'Tech Startup',
+        plan: 'Basic',
+        city: 'San Francisco',
+        tags: 'customer,trial'
+      },
+      {
+        email: 'mike.wilson@example.com',
+        firstName: 'Mike',
+        lastName: 'Wilson',
+        company: 'Consulting LLC',
+        plan: 'Enterprise',
+        city: 'Chicago',
+        tags: 'customer,enterprise'
+      }
+    ]
+
+    const headers = Object.keys(exampleData[0])
+    const csvContent = [
+      headers.join(','),
+      ...exampleData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'contacts-example.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -174,6 +270,10 @@ function ContactsPanel({ currentList }: { currentList: ContactList | null }) {
             <Button variant="secondary" onClick={() => setShowImport(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Import CSV
+            </Button>
+            <Button variant="outline" onClick={downloadCSVExample}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Example CSV
             </Button>
           </div>
 
@@ -283,7 +383,7 @@ function ContactsPanel({ currentList }: { currentList: ContactList | null }) {
                         <Button size="sm" variant="secondary" onClick={() => setEditing(ct)}>
                           <Pencil className="mr-1 h-3 w-3" /> Edit
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => actions.deleteContact(currentList.id, ct.id)}>
+                        <Button size="sm" variant="destructive" onClick={() => setDeleteContactConfirm(ct.id)}>
                           <Trash2 className="mr-1 h-3 w-3" /> Delete
                         </Button>
                       </div>
@@ -304,6 +404,35 @@ function ContactsPanel({ currentList }: { currentList: ContactList | null }) {
       <ImportDialog open={showImport} onOpenChange={setShowImport} listId={currentList.id} />
       {editing && (
         <EditContactDialog contact={editing} listId={currentList.id} onClose={() => setEditing(null)} />
+      )}
+      
+      {/* Delete Contact Confirmation */}
+      {deleteContactConfirm && (
+        <Dialog open onOpenChange={() => setDeleteContactConfirm(null)}>
+          <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900">
+            <DialogHeader>
+              <DialogTitle>Delete Contact</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-slate-300">
+                Are you sure you want to delete <strong>{currentList?.contacts.find(c => c.id === deleteContactConfirm)?.email}</strong>?
+              </p>
+              <p className="text-sm text-slate-400 mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setDeleteContactConfirm(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => {
+                actions.deleteContact(currentList!.id, deleteContactConfirm)
+                setDeleteContactConfirm(null)
+              }}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Contact
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   )
@@ -335,7 +464,7 @@ function ImportDialog({ open, onOpenChange, listId }: { open: boolean; onOpenCha
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (res) => {
+      complete: (res: any) => {
         const data = res.data as any[]
         if (data.length === 0) {
           setError('No rows found.')
@@ -347,7 +476,7 @@ function ImportDialog({ open, onOpenChange, listId }: { open: boolean; onOpenCha
         // initialize var mappings for all headers; we'll filter when rendering
         setVarMappings(hdrs.map(h => ({ header: h, include: true, key: toVarKey(h) })))
       },
-      error: (e) => setError(e.message),
+      error: (e: any) => setError(e.message),
     })
   }
 
@@ -410,6 +539,17 @@ function ImportDialog({ open, onOpenChange, listId }: { open: boolean; onOpenCha
         <DialogHeader>
           <DialogTitle>Import Contacts from CSV</DialogTitle>
         </DialogHeader>
+        
+        <div className="rounded border border-blue-800 bg-blue-950 p-3 text-sm text-blue-200">
+          <div className="font-medium mb-1">📋 CSV Format Requirements:</div>
+          <ul className="text-xs space-y-1 text-blue-300">
+            <li>• <strong>Required:</strong> Email column</li>
+            <li>• <strong>Optional:</strong> firstName, lastName, tags (comma-separated)</li>
+            <li>• <strong>Variables:</strong> Any additional columns become personalization variables</li>
+            <li>• <strong>Example variables:</strong> company, plan, city → Use in templates as <code className="bg-blue-900 px-1 rounded">{"{{company}}"}</code></li>
+          </ul>
+        </div>
+
         <div className="space-y-4">
           <input
             ref={fileRef}
@@ -432,8 +572,11 @@ function ImportDialog({ open, onOpenChange, listId }: { open: boolean; onOpenCha
 
               <div className="rounded border border-slate-800">
                 <div className="border-b border-slate-800 p-2 text-sm text-slate-300">
-                  Variables mapping (optional)
-                  <div className="mt-1 text-xs text-slate-400">Any included column will be imported as a per-contact variable and usable in templates with {'{{yourVariable}}'}.</div>
+                  📧 Personalization Variables (Optional)
+                  <div className="mt-1 text-xs text-slate-400">
+                    Columns not mapped above can be used as template variables. 
+                    For example: <code className="bg-slate-800 px-1 rounded">{"{{company}}"}</code> or <code className="bg-slate-800 px-1 rounded">{"{{plan}}"}</code>
+                  </div>
                 </div>
                 <div className="max-h-[260px] overflow-auto p-2">
                   <table className="w-full text-sm">
@@ -527,7 +670,7 @@ function EditContactDialog({ contact, listId, onClose }: { contact: Contact; lis
   const toggle = (tid: string) => {
     setDraft(s => {
       const present = s.tags.includes(tid)
-      return { ...s, tags: present ? s.tags.filter(t => t !== tid) : [...s, tid] }
+      return { ...s, tags: present ? s.tags.filter(t => t !== tid) : [...s.tags, tid] }
     })
   }
 

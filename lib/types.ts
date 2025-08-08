@@ -3,6 +3,7 @@ export type ID = string
 export type Settings = {
   resendApiKey?: string
   cachedDomains?: ResendDomain[]
+  defaultSenderEmail?: string
 }
 
 export type ResendDomain = {
@@ -87,7 +88,7 @@ export type AppActions = {
   refreshDomains: () => Promise<void>
   addTag: (name: string) => void
   deleteTag: (id: ID) => void
-  addList: (payload: { name: string; description?: string }) => void
+  addList: (payload: { name: string; description?: string }) => ID
   updateList: (id: ID, updater: (l: ContactList) => ContactList) => void
   deleteList: (id: ID) => void
   // vars is now supported on contact creation

@@ -6,31 +6,44 @@ export type ResendEmailInput = {
 }
 
 export async function sendWithResend(apiKey: string, input: ResendEmailInput) {
-  const res = await fetch('https://api.resend.com/emails', {
+  console.log('sendWithResend called - using API route /api/send-email')
+  
+  // Use our Next.js API route instead of calling Resend directly
+  const res = await fetch('/api/send-email', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      apiKey,
+      ...input,
+    }),
   })
+  
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Resend error ${res.status}: ${text}`)
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(errorData.error || `API error ${res.status}`)
   }
-  return res.json()
+  
+  const result = await res.json()
+  return result.data
 }
 
 export async function listResendDomains(apiKey: string) {
-  const res = await fetch('https://api.resend.com/domains', {
-    method: 'GET',
+  // Use our Next.js API route instead of calling Resend directly
+  const res = await fetch('/api/domains', {
+    method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ apiKey }),
   })
+  
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Resend error ${res.status}: ${text}`)
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(errorData.error || `API error ${res.status}`)
   }
-  return res.json() as Promise<{ data: { id: string; name: string; status: string }[] }>
+  
+  const result = await res.json()
+  return result.data as { data: { id: string; name: string; status: string }[] }
 }

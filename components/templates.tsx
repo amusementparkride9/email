@@ -15,6 +15,7 @@ export default function Templates() {
   const [name, setName] = useState('')
   const [html, setHtml] = useState('<h1>Hello {{firstName}}</h1>\n<p>Welcome to {{company}}.</p>')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const startNew = () => {
     setEditingId(null)
@@ -58,7 +59,7 @@ export default function Templates() {
               <div className="line-clamp-3 text-sm text-slate-200 template-html" dangerouslySetInnerHTML={{ __html: t.html }} />
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={() => startEdit(t.id)}><Pencil className="mr-1 h-3 w-3" /> Edit</Button>
-                <Button size="sm" variant="destructive" onClick={() => actions.deleteTemplate(t.id)}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                <Button size="sm" variant="destructive" onClick={() => setDeleteConfirm(t.id)}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
               </div>
             </CardContent>
           </Card>
@@ -96,6 +97,35 @@ export default function Templates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Template Confirmation */}
+      {deleteConfirm && (
+        <Dialog open onOpenChange={() => setDeleteConfirm(null)}>
+          <DialogContent className="sm:max-w-md border-slate-800 bg-slate-900">
+            <DialogHeader>
+              <DialogTitle>Delete Template</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-slate-300">
+                Are you sure you want to delete <strong>{state.templates.find(t => t.id === deleteConfirm)?.name}</strong>?
+              </p>
+              <p className="text-sm text-slate-400 mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => {
+                actions.deleteTemplate(deleteConfirm)
+                setDeleteConfirm(null)
+              }}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

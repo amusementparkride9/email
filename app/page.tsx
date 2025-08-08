@@ -11,6 +11,7 @@ import Audience from '@/components/audience'
 import Templates from '@/components/templates'
 import Campaigns from '@/components/campaigns'
 import Settings from '@/components/settings'
+import QuickComposer from '@/components/quick-composer'
 import CampaignReport from '@/components/campaign-report'
 import { openCampaignReport, onCampaignReportChange } from '@/lib/report-ui'
 import { Mail, Send, Users, LayoutTemplate, LineChart, SettingsIcon } from 'lucide-react'
@@ -28,14 +29,14 @@ export default function Page() {
 }
 
 function Shell() {
-  const [tab, setTab] = useHashTab('dashboard')
+  const [tab, setTab] = useHashTab('compose') // Changed default from 'dashboard' to 'compose'
   const { state, actions } = useAppStore()
 
   // Report modal state via lightweight pub/sub
   const [reportId, setReportId] = useState<string | null>(null)
   useEffect(() => {
     const unsub = onCampaignReportChange(setReportId)
-    return () => unsub()
+    return unsub
   }, [])
 
   // Onboarding: prompt for API key on first run
@@ -78,6 +79,9 @@ function Shell() {
         </header>
 
         <main className="mx-auto max-w-7xl px-4 py-6">
+          <TabsContent value="compose" className="mt-0">
+            <QuickComposer />
+          </TabsContent>
           <TabsContent value="dashboard" className="mt-0">
             <Dashboard />
           </TabsContent>
@@ -145,6 +149,7 @@ function Shell() {
 
 function TopNav({ tab, onChange }: { tab: string; onChange: (v: string) => void }) {
   const items = [
+    { id: 'compose', label: 'Send Email', icon: Mail },
     { id: 'dashboard', label: 'Dashboard', icon: LineChart },
     { id: 'audience', label: 'Audience', icon: Users },
     { id: 'templates', label: 'Templates', icon: LayoutTemplate },
@@ -152,7 +157,7 @@ function TopNav({ tab, onChange }: { tab: string; onChange: (v: string) => void 
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ]
   return (
-    <TabsList className="grid w-full grid-cols-5 bg-slate-900 md:w-auto">
+    <TabsList className="grid w-full grid-cols-6 bg-slate-900 md:w-auto">
       {items.map((it) => (
         <TabsTrigger
           key={it.id}
